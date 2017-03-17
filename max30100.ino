@@ -15,9 +15,11 @@ void setup() {
   pulseOxymeter = new MAX30100();
   pinMode(2, OUTPUT);
 
+  //pulseOxymeter->printRegisters();
 }
 
 void loop() {
+  //return;
   //You have to call update with frequency at least 37Hz. But the closer you call it to 100Hz the better, the filter will work.
   pulseoxymeter_t result = pulseOxymeter->update();
   
@@ -33,6 +35,12 @@ void loop() {
     Serial.print( "SaO2: " );
     Serial.print( result.SaO2 );
     Serial.println( "%" );
+
+    Serial.print("{P2|BPM|255,40,0|");
+    Serial.print(result.heartBPM);
+    Serial.print("|SaO2|0,0,255|");
+    Serial.print(result.SaO2);
+    Serial.println("}");
   }
 
   
@@ -50,11 +58,7 @@ void loop() {
   Serial.print(result.lastBeatThreshold);
   Serial.println("}");
 
-  Serial.print("{P2|BPM|255,40,0|");
-  Serial.print(result.heartBPM);
-  Serial.print("|SaO2|0,0,255|");
-  Serial.print(result.SaO2);
-  Serial.println("}");
+  
 
   delay(10);
 

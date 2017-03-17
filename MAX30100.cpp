@@ -32,6 +32,10 @@ MAX30100::MAX30100(
 
   setMode(  mode );
 
+  //Check table 8 in datasheet on page 19. You can't just throw in sample rate and pulse width randomly. 100hz + 1600us is max for that resolution
+  setSamplingRate( samplingRate );
+  setLEDPulseWidth( pulseWidth );
+
   redLEDCurrent = (uint8_t)STARTING_RED_LED_CURRENT;
   lastREDLedCurrentCheck = 0;
 
@@ -68,6 +72,8 @@ MAX30100::MAX30100(
   pulsesDetected = 0;
   currentSaO2Value = 0;
 
+  lastBeatThreshold = 0;
+
 }
 
 pulseoxymeter_t MAX30100::update()
@@ -97,7 +103,7 @@ pulseoxymeter_t MAX30100::update()
   redACValueSqSum += dcFilterRed.result * dcFilterRed.result;
   samplesRecorded++;
 
-  if( detectPulse( lpbFilterIR.result ) )
+  if( detectPulse( lpbFilterIR.result ) && samplesRecorded > 0 )
   {
     result.pulseDetected=true;
     pulsesDetected++;
@@ -131,7 +137,7 @@ pulseoxymeter_t MAX30100::update()
   result.redDcValue = dcFilterRed.w;
   result.lastBeatThreshold = lastBeatThreshold;
   result.dcFilteredIR = dcFilterIR.result;
-  result.dcFilteredRed = dcFilterRed.result;
+  result.dcFilteredRed = dcFilterRed.result;  
   
   
   return result;
