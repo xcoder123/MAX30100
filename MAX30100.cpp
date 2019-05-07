@@ -62,12 +62,13 @@ MAX30100::MAX30100(
   lpbFilterIR.v[1] = 0;
   lpbFilterIR.result = 0;
 
+  memset(meanDiffIR.values, 0, sizeof(float)*MEAN_FILTER_SIZE);
   meanDiffIR.index = 0;
   meanDiffIR.sum = 0;
   meanDiffIR.count = 0;
 
-
-  valuesBPM[0] = 0;
+  // Erase all valuesBPM
+  memset(valuesBPM, 0, sizeof(float)*PULSE_BPM_SAMPLE_SIZE);
   valuesBPMSum = 0;
   valuesBPMCount = 0;
   bpmIndex = 0;
@@ -203,23 +204,38 @@ bool MAX30100::detectPulse(float sensor_value)
         if(debug == true) 
           Serial.println(rawBPM);
 
-        //This method sometimes glitches, it's better to go through whole moving average everytime
-        //IT's a neat idea to optimize the amount of work for moving avg. but while placing, removing finger it can screw up
-        //valuesBPMSum -= valuesBPM[bpmIndex];
-        //valuesBPM[bpmIndex] = rawBPM;
-        //valuesBPMSum += valuesBPM[bpmIndex];
+        currentPulseDetectorState = PULSE_TRACE_DOWN;
 
-        valuesBPM[bpmIndex] = rawBPM;
-        valuesBPMSum = 0;
-        for(int i=0; i<PULSE_BPM_SAMPLE_SIZE; i++)
-        {
-          valuesBPMSum += valuesBPM[i];
+        // Reset moving avg after a while without pulses
+        if(beatDuration > PULSE_BEAT_DURATION_RST){
+          memset(valuesBPM, 0, sizeof(float)*PULSE_BPM_SAMPLE_SIZE);
+          valuesBPMSum = 0;
+          bpmIndex = 0;
+          valuesBPMCount = 0;
+
+          if(debug)
+            Serial.println("Moving avg. reseted");
         }
+
+        // Eliminate glitchy values
+        if(rawBPM > PULSE_MAX_VALUE || rawBPM < PULSE_MIN_VALUE){
+          if(debug)
+            Serial.println("BPM out of bounds. Not adding to moving avg.");
+            
+          return false;
+        }
+
+        valuesBPMSum -= valuesBPM[bpmIndex];
+        valuesBPM[bpmIndex] = rawBPM;
+        valuesBPMSum += valuesBPM[bpmIndex];
+
+        if(valuesBPMCount < PULSE_BPM_SAMPLE_SIZE)
+          valuesBPMCount++;
 
         if(debug == true) 
         {
           Serial.print("CurrentMoving Avg: ");
-          for(int i=0; i<PULSE_BPM_SAMPLE_SIZE; i++)
+          for(int i=0; i<valuesBPMCount; i++)
           {
             Serial.print(valuesBPM[i]);
             Serial.print(" ");
@@ -231,18 +247,12 @@ bool MAX30100::detectPulse(float sensor_value)
         bpmIndex++;
         bpmIndex = bpmIndex % PULSE_BPM_SAMPLE_SIZE;
 
-        if(valuesBPMCount < PULSE_BPM_SAMPLE_SIZE)
-          valuesBPMCount++;
-
         currentBPM = valuesBPMSum / valuesBPMCount;
         if(debug == true) 
         {
           Serial.print("AVg. BPM: ");
           Serial.println(currentBPM);
         }
-
-
-        currentPulseDetectorState = PULSE_TRACE_DOWN;
 
         return true;
       }
