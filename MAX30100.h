@@ -64,7 +64,9 @@ SOFTWARE.
 #define PULSE_GO_DOWN_THRESHOLD     1
 
 #define PULSE_BPM_SAMPLE_SIZE       10 //Moving average size
-
+#define PULSE_BEAT_DURATION_RST   2500 // Time in ms to reset the moving avg
+#define PULSE_MAX_VALUE            220
+#define PULSE_MIN_VALUE             50
 
 
 
